@@ -9,3 +9,18 @@ changing the URL for a Wordpress site.
 
 Basically updates wp_options and wp_posts references to 
 these values.  Takes care to not break serialized PHP arrays.
+
+You run it through Apache (recommended) by copying this folder
+to an Apache server that has access to your Wordpress MySQL server.
+Running ./install.sh should fix up permissions for most folks
+if needed.
+
+You may also run it from the command line:
+    php move-wordpress-cli.php
+
+which may be preferable for large databases.
+
+You may want to increase the 'max_execution_time ' value in your
+php.ini if it seems to be timing out.
+
+Enjoy
