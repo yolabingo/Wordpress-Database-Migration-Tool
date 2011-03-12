@@ -1,26 +1,32 @@
-Moving a Wordpress site to a new host or changing its domain
-can be a huge PITA, because WP itself as well as many plugins 
-store the filesystem location of the WP install as well as URL's 
-for WP site in the database.
+Description:
 
-This tool updates Wordpress MySQL databases when moving
-a Wordpress site to a new filesystem location, or when 
-changing the URL for a Wordpress site.
+Moving a Wordpress site to a new host or changing its domain can 
+be a huge PITA.  This is because WP itself (as well as many plugins)
+store the filesystem location and current URL of the Wordpress site 
+in the database.  So, simply copying your files and database may
+unexpectedly break things.
 
-Basically updates wp_options and wp_posts references to 
-these values.  Takes care to not break serialized PHP arrays.
+Given the old and new URL's or filesystem paths, this tool updates a 
+Wordpress MySQL database (it just updates wp_options and wp_posts -
+seems to be the only places this is stored). 
 
-You run it through Apache (recommended) by copying this folder
-to an Apache server that has access to your Wordpress MySQL server.
-Running ./install.sh should fix up permissions for most folks
-if needed.
+Most importantly, it takes care to _not_ break serialized PHP arrays,
+as many plugins now store their information in this manner.  Just doing
+a SQL string REPLACE() call - as was the old way to do this - will 
+"break" serialized PHP arrays in almost all cases.
+
+Use:
+
+Run it through Apache (recommended) by copying this folder to an Apache 
+server that has access to your Wordpress MySQL database.  
+Running ./install.sh should fix up permissions for most folks if needed.
 
 You may also run it from the command line:
     php move-wordpress-cli.php
 
 which may be preferable for large databases.
 
-You may want to increase the 'max_execution_time ' value in your
-php.ini if it seems to be timing out.
+You may want to increase the 'max_execution_time = x' value in your php.ini 
+if it seems to be timing out.
 
 Enjoy
