@@ -25,7 +25,7 @@ function get_form_vars($form_section = '', $vars = array()) {
         $vars['db_host'] = 'localhost';
         $vars['db_user'] = '';
         $vars['db_pass'] = '';
-        $vars['db_name'] = '';
+        $vars['db_name'] = 'wordpress';
         $vars['db_table_prefix'] = 'wp_';
         $vars['validate_form'] = '1';
     } 
@@ -74,6 +74,19 @@ function validate($vars) {
     $excluded_mysql_users = array('root');
 
     $errors = array();
+
+    if ($vars['url_old'] == '' && $vars['url_new'] == '') {?>
+        <b>No URL's given - skipping URL update.<br /></b> <?php
+        unset($vars['url_old']);
+        unset($vars['url_new']);
+    }
+
+    if ($vars['path_old'] == '' && $vars['path_new'] == '') { ?>
+        <b>No filesystem paths given - skipping path update.<br /></b> <?php
+        unset($vars['path_old']);
+        unset($vars['path_new']);
+    }
+
     foreach ($vars as $form_field => $v) {
         $error_key = $form_field .'_error';
 
