@@ -1,7 +1,11 @@
-Updates Wordpress MySQL databases when moving
-a Wordpress site to a new filesystem location,
-or when changing the URL for a Wordpress site.
+Moving a Wordpress site to a new host or changing its domain
+can be a huge PITA, because WP itself as well as many plugins 
+store the filesystem location of the WP install as well as URL's 
+for WP site in the database.
 
-Basically updates wp_options and wp_posts references
-to these values.  Takes care to not break serialized
-PHP arrays.
+This tool updates Wordpress MySQL databases when moving
+a Wordpress site to a new filesystem location, or when 
+changing the URL for a Wordpress site.
+
+Basically updates wp_options and wp_posts references to 
+these values.  Takes care to not break serialized PHP arrays.
