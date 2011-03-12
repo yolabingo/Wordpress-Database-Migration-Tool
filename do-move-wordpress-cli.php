@@ -1,0 +1,1 @@
+move-wordpress-cli.php
