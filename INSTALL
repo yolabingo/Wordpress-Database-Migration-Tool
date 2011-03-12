@@ -1,0 +1,15 @@
+At a bash prompt:
+    cd  Wordpress-Database-Migration-Tool
+    chmod 700 install.sh
+    ./install.sh
+
+The Wordpress-Database-Migration-Tool directory must be accessible via Apache.
+
+Then browse to http://your-server/Wordpress-Database-Migration-Tool/move-wordpress.php
+
+or, run:
+    php move-wordpress-cli.php
+
+to run from the command line.
+
+
