@@ -10,7 +10,7 @@ Given the old and new URL's or filesystem paths, this tool updates a
 Wordpress MySQL database (it just updates wp_options and wp_posts -
 seems to be the only places this is stored). 
 
-Most importantly, it takes care to _not_ break serialized PHP arrays,
+Most importantly, it takes care to preserve serialized PHP arrays,
 as many plugins now store their information in this manner.  Just doing
 a SQL string REPLACE() call - as was the old way to do this - will 
 "break" serialized PHP arrays in almost all cases.
