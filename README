@@ -26,7 +26,10 @@ You may also run it from the command line:
 
 which may be preferable for large databases.
 
-You may want to increase the 'max_execution_time = x' value in your php.ini 
-if it seems to be timing out.
+You may need to increase the 'max_execution_time = x' value in your php.ini 
+if this script times out.
+
+To run in debug mode, change the return value of debug() to "true" in 
+move-wordpress.inc.php.
 
 Enjoy
