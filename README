@@ -1,3 +1,18 @@
+Copyright (C) 2011 Southwest Cyberport http://www.swcp.com/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 Description:
 
 Moving a Wordpress site to a new host or changing its domain can 
@@ -31,5 +46,11 @@ if this script times out.
 
 To run in debug mode, change the return value of debug() to "true" in 
 move-wordpress.inc.php.
+
+Disclaimers:
+
+Make sure you have a back up of your database.
+This tool does not check for SQL injection. 
+Restrict web access to this directory or remove it after use.
 
 Enjoy
