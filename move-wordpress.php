@@ -18,11 +18,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 require_once('move-wordpress.inc.php');
 print_page_header();
 
+$vars = get_form_vars(array('mysql','url', 'path', 'options'));
+
 if ($_POST) { 
     $validation_errors = false;
     $vars = $_POST;
     // Do simple sanity checks 
-    if ($vars['validate_form'] == 1) {
+    if ($vars['validate_form']) {
         $validation_errors = validate($vars);
     }
     if ($validation_errors) {
@@ -32,10 +34,7 @@ if ($_POST) {
         update_db($vars);
         exit();
     }
-} else {
-    $vars = get_form_vars(array('mysql','url', 'path'));
 } ?>
-
         Update a Wordpress database when moving a Wordpress site from one user account to another, <br />
         transferring a site from another host, etc. <?php
 
@@ -58,6 +57,9 @@ if ($_POST) {
                 <h4>Enter filesystem path to change, e.g., <code>/home/foobar/public_html/example.com/</code></h4>
                 Leave both fields blank to update only the URL.<br />
                 <?php print_form_section('path', $vars); ?>
+            </div><br />
+            <div class="formsubsection">
+                <?php print_form_section('options', $vars); ?>
             </div><br /> <?php
             if ($_POST) { ?>
                 <label><input type="submit" value="Submit and revalidate" 
@@ -65,7 +67,7 @@ if ($_POST) {
                 </label>
                 <label><input type="submit" value="I know what I'm doing. Submit without revalidating"
                                onclick="document.getElementById('validate_form').value = 0; return true;" />
-                </label> <?
+                </label> <?php
             } else { ?>
                 <label><input type="submit" value="Submit" /></label> <?php
             } ?>

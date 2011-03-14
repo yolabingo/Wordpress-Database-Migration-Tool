@@ -14,7 +14,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-function debug() { return false; }
+$show_debug = false;
+
+function debug() { 
+    global $show_debug;
+    return $show_debug;
+}
 
 ############ CONTROLLER-ISH DATA-WRANGLING FUNCTIONS ############
 
@@ -30,6 +35,8 @@ function debug() { return false; }
 # as a flag for the code that generates the HTML for the form.
 #
 function get_form_vars($form_section = '', $vars = array()) {
+    global $show_debug;
+
     if (is_string($form_section)) {
         $form_section = array($form_section);
     }
@@ -41,7 +48,6 @@ function get_form_vars($form_section = '', $vars = array()) {
         $vars['db_pass'] = '';
         $vars['db_name'] = 'wordpress';
         $vars['db_table_prefix'] = 'wp_';
-        $vars['validate_form'] = '1';
     } 
     if (in_array('url', $form_section)) { 
         $vars['url_old'] = '';
@@ -51,12 +57,21 @@ function get_form_vars($form_section = '', $vars = array()) {
         $vars['path_old'] = '';
         $vars['path_new'] = '';
     }
-
+    if (in_array('options', $form_section)) { 
+        $vars['validate_form'] = '1';
+        $vars['debug'] = 'debug';
+        $vars['no_op'] = 'no_op';
+    }
     // Replace default values with POST'ed values if they exist.
     if ($_POST) {
         foreach ($vars as $k => $v) {
             if (array_key_exists($k, $_POST)) {
                 $vars[$k] = trim( (string) $_POST[$k] );
+                if ($k == 'debug' && $vars[$k] == '1') {
+                    $show_debug = true;
+                }
+            } elseif ($k == 'debug' || $k == 'no_op') {
+                $vars[$k] = 0;
             }
         }
     }
@@ -74,6 +89,8 @@ function get_form_label($form_field) {
                   'url_new' => 'New URL',
                   'path_old' => 'Old filesystem path',
                   'path_new' => 'New filesystem path',
+                  'debug' => 'Enable debugging output',
+                  'no_op' => '<br />Show MySQL queries -<br />do not modify database',
                   'error' => 'An error has occured');
     if (array_key_exists($form_field, $labels)) {
         return($labels[$form_field]);
@@ -86,9 +103,8 @@ function validate($vars) {
     # If you have privileged MySQL users that you do not want 
     # running amok on your DB, add them here.
     $excluded_mysql_users = array('root');
-
     $errors = array();
-
+    global $show_debug;  
     if ($vars['url_old'] == '' && $vars['url_new'] == '') {?>
         <b>No URL's given - skipping URL update.<br /></b> <?php
         unset($vars['url_old']);
@@ -109,12 +125,9 @@ function validate($vars) {
                 $errors[$form_field] = 'Non-privileged user, please';
                 $errors[$error_key] = 'Privileged MySQL users not allowed';
             }
-        }
-        if (in_array($form_field, array('db_host','db_user','db_pass','db_name'))) {
+        } elseif (in_array($form_field, array('db_host','db_user','db_pass','db_name'))) {
             if (! $v) { $errors[$error_key] = 'Required field.'; }
-        }
-
-        if (in_array($form_field, array('url_old', 'path_old'))) {
+        } elseif (in_array($form_field, array('url_old', 'path_old'))) {
             // For both URL and path, either both fields must be empty, or
             // both fields are non-empyt.
             if ($form_field == 'url_old') { 
@@ -129,25 +142,17 @@ function validate($vars) {
                     $errors[$error_key] = 'Both old and new values must be specified.  Leave both blank to skip.';
 		}
             } elseif ($v) {
-                // 'old' and 'new' values should both end with a "/", or neither should...
-                $last_chars = array(substr($v, -1, 1), substr($vars[$new_key], -1, 1));
-                if (in_array('/', $last_chars) && ($last_chars[0] != $last_chars[1])) {
-                    $errors[$error_key] = "Trailing slashes don't jive. ";
-                }
-
                 // URL's should start with https?://
                 if ($form_field == 'url_old') {
                     $pattern = '/^https?:\/\//';
                     $pattern_error = "<br />URL's should start with 'http://' or 'https://'";
                     if (! (preg_match($pattern, $v) && preg_match($pattern, $vars[$new_key])) ) {
                         $errors[$error_key] .= $pattern_error;
-                    } elseif (substr($v, -1, 1) == '/') {
-                        $errors[$error_key] .= "Trailing slash on URL's are bad.";
 		    }
 
                 }
                 /*  
-                    Add filesystem path regex validation here if you like.
+                    // Add filesystem path regex validation here if you like.
                 else {
                     $pattern = '/home\/[^\/]+\/public_html\//';
                     $pattern_error = "<br />Expected to something like '/home/foobar/public_html/' in the destination.";
@@ -168,6 +173,7 @@ function validate($vars) {
 # update mysql database 
 # this is the only function called by the "controller"
 function update_db($vars) {
+    $queries = array();
     if (in_array($vars['db_user'], array('root','webroot'))) {
         echo 'Privileged Mysql users not permitted';
         exit();
@@ -185,95 +191,66 @@ function update_db($vars) {
     if ($vars['url_old'] && $vars['url_new']) {
         if (debug()) { echo "<br />Updating URL's<br />"; }
         // update URL in posts and such
-        if (debug()) { echo "change_url_queries()<br />"; }
-        change_url_queries($dbh, $vars['url_old'], $vars['url_new'], $vars['db_table_prefix']);
-        // update URL's in wp_options
-        if (debug()) { echo "change_wp_options()<br />"; }
-        change_wp_options($dbh, $vars['url_old'], $vars['url_new'], $vars['db_table_prefix']);
+        $queries = gen_sql($vars['url_old'], $vars['url_new'], $vars['db_table_prefix']);
     }
     
     if ($vars['path_old'] && $vars['path_new']) {
         if (debug()) { echo "<br />Updating filesystem path<br />"; }
-        // update filesystem paths in wp_options
-        change_wp_options($dbh, $vars['path_old'], $vars['path_new'], $vars['db_table_prefix']);
+        // update filesystem paths
+        $queries = array_merge($queries, gen_sql($vars['path_old'], $vars['path_new'], $vars['db_table_prefix']) );
+    }
+    if ($vars['no_op'] == '0') { ?>
+        <br /><b>No changes have been made.<br />These are the queries that would be executed:</b><br />
+        <ul> <?php
+            foreach ($queries as $query) { echo "<li> $query </li>"; } ?>
+        </ul> <?php
+    } else {
+        foreach ($queries as $query) {
+            do_update_query($query, $dbh);
+        }
     }
 }
 
 ## The rest of the MODEL-ISH functions below are helpers for update_db()
 
-function change_url_queries($dbh, $old, $new, $table_prefix) {
-    $posts_table = $table_prefix . 'posts';
-    do_update_query("UPDATE $posts_table SET post_content = REPLACE(post_content, '$old', '$new')", $dbh);
-    do_update_query("UPDATE $posts_table SET guid = REPLACE(guid, '$old','$new')", $dbh);
+function gen_sql($old, $new, $table_prefix) {
+    $update_cols = array();
+    $update_cols[] = array('table' => $table_prefix . 'posts',
+                           'col' => 'post_content');
+    $update_cols[] = array('table' => $table_prefix . 'posts',
+                           'col' => 'guid');
+    $update_cols[] = array('table' => $table_prefix . 'options',
+                           'col' => 'option_value');
+    $queries = array();
+    // Strip trailing slashes
+    $old = rtrim($old, '/');
+    $new = rtrim($new, '/');
+
+    // Create basic update queries
+    foreach ($update_cols as $v) {
+        $t = $v['table'];
+        $col = $v['col'];
+        $queries[] = "UPDATE $t SET $col = REPLACE($col, '$old', '$new')";
+    }
+
+    // Create update queries for strings in serialized arrays
+    $old = get_serial_chunk($old);
+    $new = get_serial_chunk($new);
+    foreach ($update_cols as $v) {
+        $t = $v['table'];
+        $col = $v['col'];
+        $queries[] = "UPDATE $t SET $col = REPLACE($col, '$old', '$new')";
+    }
+
+    // Move the "serialized" queries to the start of the array.
+    return array_reverse($queries);
 }
 
-# Some wp_options are stored as serialized PHP arrays.  Some are not.  
-# If an option is just a regular string, we change it with MySQL REPLACE().
-# Otherwise, we need to unserialize/change/reserialize.
-#
-function change_wp_options($dbh, $old, $new, $table_prefix) {
-    $table = $table_prefix . 'options';
-    $retrieved_ids = array();
-
-    // This could be done as a simple loop, without the annoying "LIMIT 1" business.
-    // But if you've got a large database and a server with limited RAM, you may run out of memory.
-    $find_affected = "SELECT option_id, option_value FROM $table WHERE option_value LIKE '%$old%' LIMIT 1";
-    $result = mysql_query($find_affected, $dbh);
-    if (mysql_num_rows($result) === false) { ?>
-        <span class="errormsg">Error executing query:<br /><pre><?php echo $find_affected;?></pre></span><hr /><?php
-    }
-
-    while ($row = mysql_fetch_array($result, MYSQL_ASSOC)) {
-        unset($result);
-        $retrieved_ids[] = $option_id = $row['option_id']; 
-        // unserlalize() returns false if the passed value is not a valid serialized array...
-        if (unserialize(trim($row['option_value']))) {
-            $row['option_value'] = unserialize(trim($row['option_value']));
-            $row['option_value'] = update_serialized_array($old, $new, $row['option_value']); 
-            $row['option_value'] = serialize($row['option_value']);
-            do_update_query("UPDATE $table SET option_value = '" . mysql_real_escape_string($row['option_value'], $dbh) . "' WHERE option_id = $option_id", $dbh);
-        } elseif (preg_match('/^a:[0-9]+:/', trim($row['option_value']))) { ?>
-            <span class="errormsg">This looks like a serialized array, but I can't unpack it.  Maybe it's broken?<br /><pre> <?php 
-            echo substr(trim($row['option_value']), 0, 30) . '...</pre></span><hr />';
-        } else {
-            // Use SQL to update this row
-            do_update_query("UPDATE $table SET option_value = REPLACE(option_value, '$old', '$new') WHERE option_id = $option_id", $dbh);
-        }
-
-        unset($row);
-        // Get the next row to be updated.
-        // Don't get the same row over and over - like a malformed serialized array, for instance
-        $find_affected  = "SELECT option_id, option_value FROM $table WHERE (option_value LIKE '%$old%') ";
-        if ($retrieved_ids) { $find_affected .= "AND option_id NOT IN ( " . trim(join(', ', $retrieved_ids), ', ') . " ) "; }
-        $find_affected .= "LIMIT 1";
-        $result = mysql_query($find_affected, $dbh);
-        if (mysql_num_rows($result) === false) { ?>
-            <span class="errormsg">Error executing query:<br /><pre><?php echo $find_affected;?></pre></span><hr /><?php
-        }
-    }
-    if (! $retrieved_ids) {
-        echo "<br />No options containing '" . $old ."' were found.<br />";
-    }
+function get_serial_chunk($str) {
+    return 's:' . (string) strlen($str) . ':"' . $str . '"';
 }
 
-# str_replace() claims to work on array's as subjects, but it isn't recursive :(
-# Replace all occurances of $old with $new in string values in the array $subject
-# This function is a modification of something from here: http://www.php.net/manual/en/function.serialize.php
-# as I recall.
-#
-function update_serialized_array($search, $replace, $subject) { 
-    if (is_array($subject)) { 
-        foreach($subject as &$oneSubject) {
-            $oneSubject = update_serialized_array($search, $replace, $oneSubject); 
-        }
-        unset($oneSubject); 
-        return $subject; 
-    } else { 
-        return str_replace($search, $replace, $subject); 
-    } 
-} 
-
-# all our queries will be UPDATE's
+# execute SQL and output some useful informatioin
 function do_update_query($query, $dbh) {
     mysql_query($query, $dbh);
     if (mysql_affected_rows() > -1) { ?>
@@ -298,9 +275,18 @@ function do_update_query($query, $dbh) {
 # </span> 
 function print_form_section($form_section, $vars) {
     foreach (get_form_vars($form_section) as $k => $v) { 
-        // This hidden field is the only special case.
-        if ($k == 'validate_form') { ?> 
-            <input type="hidden" name="validate_form" id="validate_form" value="1" /> <?php 
+        if ($k == 'validate_form') { ?>
+            <input type="hidden" name="validate_form" id="validate_form" value="<?php echo $v; ?>" /> <?php 
+
+        // handle checkboxes 
+        } elseif ($k == 'debug' || $k == 'no_op') { 
+            $checked = $v ? ' checked="yes" ' : ''; ?>
+            <span><label for="<?php echo $k;?>"> <?php 
+                echo get_form_label($k); ?>
+                <input type="checkbox" name="<?php echo $k; ?>" id="<?php echo $k; ?>" 
+                       value="<?php echo $k; ?>" <?php echo $checked; ?> /> 
+                </label>
+            </span><?php 
         } else {
             $validation_error = $k . '_error';
             if (array_key_exists($validation_error, $vars)) { ?>
@@ -315,7 +301,7 @@ function print_form_section($form_section, $vars) {
                 $input_field_attrs .= ' id="' . $k . '" ';
                 $input_field_attrs .= ' name="' . $k . '" ';
                 if ($v) { $input_field_attrs .= ' value="' . $v . '" '; } ?>
-                <input <? echo $input_field_attrs;?> /><br />
+                <input <?php echo $input_field_attrs; ?> /><br />
             </label>
             </span><?php
         }
@@ -384,7 +370,7 @@ function print_page_header() {
         <table>
             <tr><td><a href="move-wordpress.php"><img src="grey-s.png" /></a></td>
 
-                <td valign="middle" style="margin:0px;"><h2>Wordpress Database Frobber</h2></td>
+                <td valign="middle" style="margin:0px;"><h2><a href="move-wordpress.php">Wordpress Database Migration Tool</a></h2></td>
             </tr>
         </table> <?php
 }
