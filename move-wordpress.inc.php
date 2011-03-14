@@ -35,8 +35,6 @@ function debug() {
 # as a flag for the code that generates the HTML for the form.
 #
 function get_form_vars($form_section = '', $vars = array()) {
-    global $show_debug;
-
     if (is_string($form_section)) {
         $form_section = array($form_section);
     }
@@ -59,7 +57,7 @@ function get_form_vars($form_section = '', $vars = array()) {
     }
     if (in_array('options', $form_section)) { 
         $vars['validate_form'] = '1';
-        $vars['no_op'] = 'no_op';
+        $vars['no_op'] = '0';
         // Removing this from form
         // $vars['debug'] = 'debug';
     }
@@ -68,11 +66,6 @@ function get_form_vars($form_section = '', $vars = array()) {
         foreach ($vars as $k => $v) {
             if (array_key_exists($k, $_POST)) {
                 $vars[$k] = trim( (string) $_POST[$k] );
-                if ($k == 'debug') {
-                    $show_debug = true;
-                }
-            } elseif ($k == 'debug' || $k == 'no_op') {
-                $vars[$k] = 0;
             }
         }
     }
@@ -200,11 +193,11 @@ function update_db($vars) {
         // update filesystem paths
         $queries = array_merge($queries, gen_sql($vars['path_old'], $vars['path_new'], $vars['db_table_prefix']) );
     }
-    if ($vars['no_op'] == '0') { ?>
-        <br /><b>No changes have been made.<br />These are the queries that would be executed:</b><br />
-        <ul> <?php
-            foreach ($queries as $query) { echo "<li> $query </li>"; } ?>
-        </ul> <?php
+    if (isset($vars['no_op']) && $vars['no_op']) { ?>
+        <br /><b>No changes have been made.<br />These are the queries that would be executed:</b><br /> <?php
+        foreach ($queries as $query) { 
+            echo "<p> $query </p>"; 
+        } 
     } else {
         foreach ($queries as $query) {
             do_update_query($query, $dbh);
@@ -215,23 +208,21 @@ function update_db($vars) {
 ## The rest of the MODEL-ISH functions below are helpers for update_db()
 
 function gen_sql($old, $new, $table_prefix) {
-    $update_cols = array();
-    $update_cols[] = array('table' => $table_prefix . 'posts',
-                           'col' => 'post_content');
-    $update_cols[] = array('table' => $table_prefix . 'posts',
-                           'col' => 'guid');
-    $update_cols[] = array('table' => $table_prefix . 'options',
-                           'col' => 'option_value');
-    $queries = array();
     // Strip trailing slashes
     $old = rtrim($old, '/');
     $new = rtrim($new, '/');
+
+    $queries = array();
+    $update_cols = array();
+    $update_cols[] = array('table' => $table_prefix . 'posts', 'col' => 'post_content');
+    $update_cols[] = array('table' => $table_prefix . 'posts', 'col' => 'guid');
+    $update_cols[] = array('table' => $table_prefix . 'options', 'col' => 'option_value');
 
     // Create basic update queries
     foreach ($update_cols as $v) {
         $t = $v['table'];
         $col = $v['col'];
-        $queries[] = "UPDATE $t SET $col = REPLACE($col, '$old', '$new')";
+        $queries[] = "UPDATE $t SET $col = REPLACE($col, '$old', '$new');";
     }
 
     // Create update queries for strings in serialized arrays
@@ -240,7 +231,7 @@ function gen_sql($old, $new, $table_prefix) {
     foreach ($update_cols as $v) {
         $t = $v['table'];
         $col = $v['col'];
-        $queries[] = "UPDATE $t SET $col = REPLACE($col, '$old', '$new')";
+        $queries[] = "UPDATE $t SET $col = REPLACE($col, '$old', '$new');";
     }
 
     // Move the "serialized" queries to the start of the array.
@@ -255,12 +246,10 @@ function get_serial_chunk($str) {
 function do_update_query($query, $dbh) {
     mysql_query($query, $dbh);
     if (mysql_affected_rows() > -1) { ?>
-        <span>Successful query: <pre><?php 
-        foreach (str_split($query, 120) as $v) {
-            echo htmlspecialchars($v) ."<br />";
-	} ?>
-	</pre><br /><?php
-        echo ((string) mysql_affected_rows()) . "  row(s) updated. </span><hr />";
+        <span>Successful query: 
+            <pre><?php echo $query; ?><br /></pre> <?php
+            echo ((string) mysql_affected_rows()) . "  row(s) updated."; ?>
+        </span><hr /> <?php
     } else { ?>
         <span class="errormsg">Error executing query:<br /><pre><?php echo $query;?></pre></span><hr /><?php
     }
@@ -372,5 +361,8 @@ function print_page_header() {
 
                 <td valign="middle" style="margin:0px;"><h2><a href="move-wordpress.php">Wordpress Database Migration Tool</a></h2></td>
             </tr>
-        </table> <?php
+        </table>
+        <br />
+        Update a Wordpress database when moving a Wordpress site from one user account to another, transferring a site from another host, etc. <br /><br />
+<?php
 }
