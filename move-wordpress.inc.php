@@ -59,15 +59,16 @@ function get_form_vars($form_section = '', $vars = array()) {
     }
     if (in_array('options', $form_section)) { 
         $vars['validate_form'] = '1';
-        $vars['debug'] = 'debug';
         $vars['no_op'] = 'no_op';
+        // Removing this from form
+        // $vars['debug'] = 'debug';
     }
     // Replace default values with POST'ed values if they exist.
     if ($_POST) {
         foreach ($vars as $k => $v) {
             if (array_key_exists($k, $_POST)) {
                 $vars[$k] = trim( (string) $_POST[$k] );
-                if ($k == 'debug' && $vars[$k] == '1') {
+                if ($k == 'debug') {
                     $show_debug = true;
                 }
             } elseif ($k == 'debug' || $k == 'no_op') {
@@ -90,7 +91,7 @@ function get_form_label($form_field) {
                   'path_old' => 'Old filesystem path',
                   'path_new' => 'New filesystem path',
                   'debug' => 'Enable debugging output',
-                  'no_op' => '<br />Show MySQL queries -<br />do not modify database',
+                  'no_op' => 'Show MySQL queries -<br />do not modify database',
                   'error' => 'An error has occured');
     if (array_key_exists($form_field, $labels)) {
         return($labels[$form_field]);
@@ -277,9 +278,8 @@ function print_form_section($form_section, $vars) {
     foreach (get_form_vars($form_section) as $k => $v) { 
         if ($k == 'validate_form') { ?>
             <input type="hidden" name="validate_form" id="validate_form" value="<?php echo $v; ?>" /> <?php 
-
-        // handle checkboxes 
-        } elseif ($k == 'debug' || $k == 'no_op') { 
+        // scrap debug option here } elseif ($k == 'debug' || $k == 'no_op') { 
+        } elseif ($k == 'no_op') { 
             $checked = $v ? ' checked="yes" ' : ''; ?>
             <span><label for="<?php echo $k;?>"> <?php 
                 echo get_form_label($k); ?>

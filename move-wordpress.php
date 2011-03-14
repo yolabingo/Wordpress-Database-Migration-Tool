@@ -54,11 +54,12 @@ if ($_POST) {
                 <?php print_form_section('url',$vars); ?>
             </div>
             <div class="formsubsection">
-                <h4>Enter filesystem path to change, e.g., <code>/home/foobar/public_html/example.com/</code></h4>
+                <h4>Enter filesystem path to change, e.g., <code>/home/foobar/public_html/example.com</code></h4>
                 Leave both fields blank to update only the URL.<br />
                 <?php print_form_section('path', $vars); ?>
             </div><br />
             <div class="formsubsection">
+                <h4>Options</h4>
                 <?php print_form_section('options', $vars); ?>
             </div><br /> <?php
             if ($_POST) { ?>
