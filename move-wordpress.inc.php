@@ -57,9 +57,12 @@ function get_form_vars($form_section = '', $vars = array()) {
     }
     if (in_array('options', $form_section)) { 
         $vars['validate_form'] = '1';
-        $vars['no_op'] = '0';
-        // Removing this from form
-        // $vars['debug'] = 'debug';
+        // sucky hack
+        if ($_POST && (! isset($_POST['no_op']))) {
+            $vars['no_op'] = 0;
+        } else {
+            $vars['no_op'] = 1;
+        }
     }
     // Replace default values with POST'ed values if they exist.
     if ($_POST) {
@@ -84,7 +87,7 @@ function get_form_label($form_field) {
                   'path_old' => 'Old filesystem path',
                   'path_new' => 'New filesystem path',
                   'debug' => 'Enable debugging output',
-                  'no_op' => 'Show MySQL queries -<br />do not modify database',
+                  'no_op' => '<b>Do not modify database</b><br />Just print queries',
                   'error' => 'An error has occured');
     if (array_key_exists($form_field, $labels)) {
         return($labels[$form_field]);
@@ -197,11 +200,13 @@ function update_db($vars) {
         <br /><b>No changes have been made.<br />These are the queries that would be executed:</b><br /> <?php
         foreach ($queries as $query) { 
             echo "<p> $query </p>"; 
-        } 
+        } ?>
+        <b>Uncheck the <a href="#move-wp-options"><i>Do not modify database</i> option</a> to execute these queries.</b><br /><?php
     } else {
         foreach ($queries as $query) {
             do_update_query($query, $dbh);
         }
+        echo "<h2>Migrate another site</h2><br />";
     }
 }
 
@@ -267,7 +272,6 @@ function print_form_section($form_section, $vars) {
     foreach (get_form_vars($form_section) as $k => $v) { 
         if ($k == 'validate_form') { ?>
             <input type="hidden" name="validate_form" id="validate_form" value="<?php echo $v; ?>" /> <?php 
-        // scrap debug option here } elseif ($k == 'debug' || $k == 'no_op') { 
         } elseif ($k == 'no_op') { 
             $checked = $v ? ' checked="yes" ' : ''; ?>
             <span><label for="<?php echo $k;?>"> <?php 
@@ -362,7 +366,6 @@ function print_page_header() {
                 <td valign="middle" style="margin:0px;"><h2><a href="move-wordpress.php">Wordpress Database Migration Tool</a></h2></td>
             </tr>
         </table>
-        <br />
-        Update a Wordpress database when moving a Wordpress site from one user account to another, transferring a site from another host, etc. <br /><br />
-<?php
+        <br /> 
+        <h3>Update URL's and filesystem paths in a Wordpress database</h3><br /> <?php
 }

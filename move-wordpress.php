@@ -52,7 +52,7 @@ Leave both fields blank to update only the filesystem path.<br />
 Leave both fields blank to update only the URL.<br />
 <?php print_form_section('path', $vars); ?>
 </div><br />
-<div class="formsubsection">
+<div class="formsubsection" id="move-wp-options">
 <h4>Options</h4>
 <?php print_form_section('options', $vars); ?>
 </div><br /> <?php
