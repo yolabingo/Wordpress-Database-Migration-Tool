@@ -14,5 +14,5 @@ ln -fs move-wordpress-cli.php do-move-wordpress-cli.php
 
 chmod 755 .
 chmod 644  favicon.png  grey-s.png  move-wordpress.inc.php  move-wordpress.php
-chmod 600 README
+chmod 600 README INSTALL
 chmod 700 install.sh  move-wordpress-cli.php 
