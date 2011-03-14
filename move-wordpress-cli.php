@@ -55,8 +55,10 @@ if ($argv[0] == 'do-move-wordpress-cli.php') {
     exec($cmd, $output);
     echo "\n\n\n";
     foreach ($output as $v) {
-        $out = str_replace('<br />', "\n", strip_tags($v, '<br>')); 
-        echo str_replace(array('    ', "\t"), "\n", $out);
-        echo "\n";
+        // $out = str_replace('<br />', "\n", strip_tags($v, '<br>')); 
+        $out = strip_tags($v);
+        $out =  str_replace(array('    ', "\t"), "\n", $out);
+        $out = str_replace("\n\n", "\n", $out);
+        echo str_replace("\n\n", "\n", $out);
     }
 }
