@@ -101,7 +101,6 @@ function validate($vars) {
     # running amok on your DB, add them here.
     $excluded_mysql_users = array('root');
     $errors = array();
-    global $show_debug;  
     if ($vars['url_old'] == '' && $vars['url_new'] == '') {?>
         <b>No URL's given - skipping URL update.<br /></b> <?php
         unset($vars['url_old']);
@@ -236,7 +235,7 @@ function gen_sql($old, $new, $table_prefix) {
     foreach ($update_cols as $v) {
         $t = $v['table'];
         $col = $v['col'];
-        $queries[] = "UPDATE $t SET $col = REPLACE($col, '$old', '$new');";
+        $queries[] = "UPDATE $t SET $col = REPLACE($col, '$old', '$new') WHERE $col LIKE 'a:%:{%" . $old ."%;}' ;";
     }
 
     // Move the "serialized" queries to the start of the array.
@@ -247,7 +246,7 @@ function get_serial_chunk($str) {
     return 's:' . (string) strlen($str) . ':"' . $str . '"';
 }
 
-# execute SQL and output some useful informatioin
+# execute SQL and output some useful information
 function do_update_query($query, $dbh) {
     mysql_query($query, $dbh);
     if (mysql_affected_rows() > -1) { ?>
